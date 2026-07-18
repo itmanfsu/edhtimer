@@ -12,6 +12,7 @@ Live site: [https://edhtimer.com](https://edhtimer.com)
 - Shared rooms that synchronize across browsers
 - Pause, resume, next-player, player-selection, and time-adjustment controls
 - Chrome Document Picture-in-Picture timer with a popup fallback
+- Optional translucent bookmarklet overlay for other webpages
 - Responsive layout and keyboard shortcuts
 
 ## Project structure
@@ -22,6 +23,8 @@ Live site: [https://edhtimer.com](https://edhtimer.com)
 |-- deploy-edhtimer.sh             Server-side deployment command
 |-- firebase-database-rules.json   Realtime Database access rules
 |-- index.html                     Complete application: HTML, CSS, and JavaScript
+|-- overlay.html                   Compact shared-room overlay
+|-- bookmarklet.html               Bookmarklet installation page
 `-- README.md
 ```
 
@@ -84,6 +87,12 @@ Apache serves both `edhtimer.com` and `www.edhtimer.com`, redirects HTTP to HTTP
 - **Player card:** Start that player's turn
 - **Turn counter:** Advances only after the active-player rotation wraps to the first remaining player
 - **Float timer:** Open an always-on-top timer in supported Chrome versions
+
+## Bookmarklet overlay
+
+Visit `https://edhtimer.com/bookmarklet.html` and drag the installation button to Chrome's bookmarks bar. The bookmark injects a draggable iframe pointing to `overlay.html` into the active webpage. It can adjust opacity, close without affecting the host page, and uses the same Firebase room state as the main timer.
+
+The feature is isolated to `overlay.html` and `bookmarklet.html`. The `pre-bookmarklet` Git tag marks the production revision immediately before these files were added.
 
 ## Future security improvements
 

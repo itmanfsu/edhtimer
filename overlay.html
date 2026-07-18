@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>EDH Timer Overlay</title>
+  <style>
+    :root { color-scheme:dark; --ink:#f3efe4; --muted:#9aa89f; --green:#a6e3a1; --gold:#e8bf6a; --danger:#ff756b; }
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; background:transparent; font-family:system-ui,sans-serif; color:var(--ink); }
+    .timer { min-height:210px; display:grid; align-content:center; text-align:center; padding:16px; background:linear-gradient(145deg,rgba(13,23,19,.9),rgba(27,44,35,.86)); }
+    .label { color:var(--green); font-size:10px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+    .name { margin:3px 0; font-size:21px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .clock { font:500 clamp(54px,20vw,82px)/1 monospace; letter-spacing:-.08em; font-variant-numeric:tabular-nums; }
+    .clock.low { color:var(--gold); }
+    .clock.over { color:var(--danger); }
+    .detail { min-height:18px; margin:5px 0 12px; color:var(--muted); font-size:12px; }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    button { border:1px solid #52675a; border-radius:9px; padding:9px; background:#18271f; color:var(--ink); font-weight:700; cursor:pointer; }
+    button:last-child { border-color:var(--green); background:var(--green); color:#102016; }
+    .message { color:var(--danger); line-height:1.45; }
+  </style>
+</head>
+<body>
+  <main class="timer">
+    <div class="label">Current turn</div>
+    <div class="name" id="name">Connecting…</div>
+    <div class="clock" id="clock">--:--</div>
+    <div class="detail" id="detail"></div>
+    <div class="actions"><button id="pause" disabled>Pause</button><button id="next" disabled>Next player →</button></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
+    import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app-check.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
+    import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js';
+
+    const app = initializeApp({
+      apiKey:'AIzaSyAWUgmhoZUtuxlIG4Z1SXYfgHwAQA2Vnc8', authDomain:'mtg-timer-3f28c.firebaseapp.com',
+      databaseURL:'https://mtg-timer-3f28c-default-rtdb.firebaseio.com', projectId:'mtg-timer-3f28c',
+      appId:'1:335084431039:web:fcce0fb773d9110871880a'
+    });
+    initializeAppCheck(app, { provider:new ReCaptchaEnterpriseProvider('6LcNSVotAAAAABA9Ww6KZeW8Yq22o-XSW1_OGpcd'), isTokenAutoRefreshEnabled:true });
+    const auth=getAuth(app), database=getDatabase(app), $=id=>document.getElementById(id);
+    const room=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+    let state=null, roomRef=null, offset=0, lastTick=0, raf=0;
+
+    const format=seconds=>{ const sign=seconds<0?'−':''; const total=Math.abs(Math.ceil(seconds)); return `${sign}${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`; };
+    function render() {
+      if (!state) return;
+      $('name').textContent=state.players[state.active];
+      $('clock').textContent=format(state.remaining);
+      $('clock').className='clock'+(state.remaining<=0?' over':state.remaining<=60?' low':'');
+      $('detail').textContent=state.useGameClock?`${format(state.gameRemaining[state.active])} until knockout`:`Turn ${state.turn}`;
+      $('pause').textContent=state.running?'Pause':'Resume';
+    }
+    function tick(now) {
+      if (!state?.running) return;
+      const elapsed=(now-lastTick)/1000; lastTick=now; state.remaining-=elapsed;
+      if(state.useGameClock) state.gameRemaining[state.active]-=elapsed;
+      render(); raf=requestAnimationFrame(tick);
+    }
+    function apply(data) {
+      cancelAnimationFrame(raf); state=data;
+      state.gameRemaining=Array.isArray(data.gameRemaining)?data.gameRemaining:Object.values(data.gameRemaining||{});
+      state.eliminated=Array.isArray(data.eliminated)?data.eliminated:Object.values(data.eliminated||{});
+      if(state.running&&data.syncedAt){ const elapsed=Math.max(0,(Date.now()+offset-data.syncedAt)/1000); state.remaining-=elapsed; if(state.useGameClock) state.gameRemaining[state.active]-=elapsed; }
+      lastTick=performance.now(); $('pause').disabled=false; $('next').disabled=false; render(); if(state.running) raf=requestAnimationFrame(tick);
+    }
+    async function save() { state.syncedAt=Date.now()+offset; await set(roomRef,state); }
+    function nextIndex() { for(let step=1;step<=state.players.length;step++){ const i=(state.active+step)%state.players.length; if(!state.eliminated[i]) return i; } return -1; }
+    $('pause').addEventListener('click',()=>{ state.running=!state.running; cancelAnimationFrame(raf); lastTick=performance.now(); render(); if(state.running) raf=requestAnimationFrame(tick); save(); });
+    $('next').addEventListener('click',()=>{ const next=nextIndex(); if(next<0)return; if(next<=state.active)state.turn++; state.active=next; state.remaining=state.duration; state.running=true; lastTick=performance.now(); render(); cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); save(); });
+    onValue(ref(database,'.info/serverTimeOffset'),snap=>offset=snap.val()||0);
+    if(room.length!==6){ $('name').textContent='Invalid room code'; $('name').classList.add('message'); }
+    else signInAnonymously(auth).then(()=>{ roomRef=ref(database,`rooms/${room}`); onValue(roomRef,snap=>snap.exists()?apply(snap.val()):($('name').textContent='Room not found')); }).catch(error=>{ $('name').textContent='Unable to connect'; $('detail').textContent=error.code||error.message; });
+  </script>
+</body>
+</html>
