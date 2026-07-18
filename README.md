@@ -13,6 +13,7 @@ Live site: [https://edhtimer.com](https://edhtimer.com)
 - Pause, resume, next-player, player-selection, and time-adjustment controls
 - Chrome Document Picture-in-Picture timer with a popup fallback
 - Optional translucent bookmarklet overlay for other webpages
+- Installable Progressive Web App for Android and iPhone home screens
 - Responsive layout and keyboard shortcuts
 
 ## Project structure
@@ -25,6 +26,9 @@ Live site: [https://edhtimer.com](https://edhtimer.com)
 |-- index.html                     Complete application: HTML, CSS, and JavaScript
 |-- overlay.html                   Compact shared-room overlay
 |-- bookmarklet.html               Bookmarklet installation page
+|-- manifest.webmanifest           PWA name, colors, and phone icons
+|-- service-worker.js              Installable same-origin app shell
+|-- icons/                          PWA and Apple touch icons
 `-- README.md
 ```
 
@@ -95,6 +99,12 @@ Visit `https://edhtimer.com/bookmarklet.html` and drag the installation button t
 The main timer's **Browser overlay** control opens this installation page in a new tab.
 
 The feature is isolated to `overlay.html` and `bookmarklet.html`. The `pre-bookmarklet` Git tag marks the production revision immediately before these files were added.
+
+## Phone installation
+
+The website is an installable Progressive Web App. Android users can use Chrome's **Install app** prompt. iPhone and iPad users can open the site in Safari and choose **Share > Add to Home Screen**. The installed app opens in standalone mode and continues using the same Firebase rooms and Buildkite-deployed website code.
+
+The service worker caches only the same-origin application shell. Firebase authentication, App Check, and real-time modules remain network-managed to avoid pinning backend code to an old release.
 
 ## Future security improvements
 

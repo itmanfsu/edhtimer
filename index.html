@@ -4,6 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0d1713">
+  <meta name="application-name" content="Nerd Cave Comander Clock">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Nerd Cave Clock">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Nerd Cave Comander Clock</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&display=swap');
@@ -15,6 +21,7 @@
     button { color:inherit; cursor:pointer; }
     .shell { position:relative; width:min(1100px,100%); min-height:100vh; margin:auto; padding:24px clamp(18px,4vw,48px) 32px; display:flex; flex-direction:column; }
     header { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .header-actions { display:flex; align-items:center; gap:5px; }
     .brand { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:-.03em; }
     .pip { width:34px; height:34px; display:grid; place-items:center; border:1px solid #597060; border-radius:50%; color:var(--green); }
     .pip svg { width:18px; }
@@ -81,7 +88,7 @@
   <main class="shell">
     <header>
       <div class="brand"><span class="pip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> Nerd Cave Comander Clock</div>
-      <button class="minor" id="newGame" hidden>New game</button>
+      <div class="header-actions"><button class="minor" id="installApp" hidden>Install app</button><button class="minor" id="newGame" hidden>New game</button></div>
     </header>
 
     <section class="setup" id="setup">
@@ -163,6 +170,7 @@
     const $ = (id) => document.getElementById(id);
     const state = { players: [], active: 0, duration: 300, remaining: 300, running: false, turn: 1, lastTick: 0, raf: 0, useGameClock: false, gameDuration: 3600, gameRemaining: [], eliminated: [] };
     let floatWindow = null;
+    let installPrompt = null;
     let activeRoom = '';
     let activeRoomRef = null;
     let serverOffset = 0;
@@ -394,6 +402,11 @@
       try { await navigator.clipboard.writeText(link); $('copyRoom').textContent='Copied!'; setTimeout(()=>$('copyRoom').textContent='Copy link',1500); }
       catch { prompt('Copy this game link:', link); }
     });
+    // Chromium exposes its native install prompt through beforeinstallprompt.
+    // iPhone and iPad users install through Safari's Share > Add to Home Screen.
+    window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt=event; $('installApp').hidden=false; });
+    $('installApp').addEventListener('click', async () => { if(!installPrompt)return; installPrompt.prompt(); await installPrompt.userChoice; installPrompt=null; $('installApp').hidden=true; });
+    window.addEventListener('appinstalled', () => { installPrompt=null; $('installApp').hidden=true; });
     $('newGame').addEventListener('click', () => { state.running=false; cancelAnimationFrame(state.raf); if(activeRoomRef) off(activeRoomRef); activeRoomRef=null; activeRoom=''; history.replaceState(null,'',location.pathname); if (floatWindow && !floatWindow.closed) floatWindow.close(); floatWindow=null; $('game').classList.remove('active'); $('setup').classList.remove('hidden'); $('newGame').hidden=true; $('roomBadge').classList.remove('visible'); });
     document.addEventListener('keydown', e => {
       if (!$('game').classList.contains('active') || /INPUT|SELECT/.test(e.target.tagName)) return;
@@ -404,6 +417,10 @@
     // A shared URL automatically joins its room after Firebase authentication succeeds.
     const requestedRoom = cleanRoom(new URLSearchParams(location.search).get('room') || '');
     if (requestedRoom) { $('roomCode').value=requestedRoom; joinRoom(requestedRoom); }
+
+    // Registration is deliberately last: the current page works even if service
+    // workers are unavailable, and future visits gain the installable app shell.
+    if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(console.error));
   </script>
 </body>
 </html>
