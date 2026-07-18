@@ -82,6 +82,7 @@ Apache serves both `edhtimer.com` and `www.edhtimer.com`, redirects HTTP to HTTP
 - **Space:** Pause or resume the timer
 - **N:** Advance to the next active player
 - **Player card:** Start that player's turn
+- **Turn counter:** Advances only after the active-player rotation wraps to the first remaining player
 - **Float timer:** Open an always-on-top timer in supported Chrome versions
 
 ## Future security improvements

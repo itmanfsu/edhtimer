@@ -313,7 +313,7 @@
       beep();
       const next = nextActiveIndex();
       if (next < 0) { state.running = false; cancelAnimationFrame(state.raf); render(); syncGame(); return; }
-      selectPlayer(next);
+      selectPlayer(next, next <= state.active);
       if (state.running) state.raf = requestAnimationFrame(tick);
     }
     // requestAnimationFrame provides smooth local display updates. Shared writes happen
@@ -335,15 +335,20 @@
       render();
       syncGame();
     }
-    function selectPlayer(index, countTurn = true) {
+    // `advanceTurn` represents a completed rotation around the table, not an
+    // individual player's turn. Direct player selection therefore leaves it unchanged.
+    function selectPlayer(index, advanceTurn = false) {
       if (state.eliminated[index]) return;
       state.active = index;
       state.remaining = state.duration;
-      if (countTurn) state.turn++;
+      if (advanceTurn) state.turn++;
       if (!state.running) toggleTimer(); else { state.lastTick = performance.now(); render(); }
       if (state.running) syncGame();
     }
-    function nextPlayer() { const next = nextActiveIndex(); if (next >= 0) selectPlayer(next); }
+    function nextPlayer() {
+      const next = nextActiveIndex();
+      if (next >= 0) selectPlayer(next, next <= state.active);
+    }
     function beep() {
       try { const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.frequency.value=660; gain.gain.setValueAtTime(.08,ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.15); osc.connect(gain).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+.15); } catch(e) {}
     }
