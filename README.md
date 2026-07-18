@@ -39,6 +39,7 @@ The application uses:
 
 - Firebase Anonymous Authentication
 - Firebase Realtime Database
+- Firebase App Check with reCAPTCHA Enterprise
 - Database server-time offset for synchronized countdown calculations
 
 Firebase configuration is declared near the beginning of the module script in `index.html`. Firebase web configuration values are public identifiers; security is enforced through Authentication, App Check, and Realtime Database rules.
@@ -48,6 +49,9 @@ Firebase configuration is declared near the beginning of the module script in `i
 1. Enable **Authentication > Sign-in method > Anonymous**.
 2. Open **Realtime Database > Rules**.
 3. Publish the contents of `firebase-database-rules.json`.
+4. Register `edhtimer.com` and `www.edhtimer.com` with Firebase App Check.
+
+App Check is initialized before Authentication and Realtime Database. After deploying an App Check change, confirm requests appear as **Verified** in **Firebase Console > App Check > APIs** before enabling enforcement for Realtime Database.
 
 ### Shared-room model
 
