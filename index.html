@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1713">
+  <title>Nerd Cave Comander Clock</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700;800&display=swap');
+    :root { --ink:#f3efe4; --muted:#9aa89f; --line:#2a3931; --panel:#15221c; --green:#a6e3a1; --gold:#e8bf6a; --danger:#ff756b; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:#0d1713; font-family:Manrope,system-ui,sans-serif; }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.24; background:radial-gradient(circle at 20% 0%,#42614f 0,transparent 34%),radial-gradient(circle at 90% 90%,#554522 0,transparent 30%); }
+    button,input,select { font:inherit; }
+    button { color:inherit; cursor:pointer; }
+    .shell { position:relative; width:min(1100px,100%); min-height:100vh; margin:auto; padding:24px clamp(18px,4vw,48px) 32px; display:flex; flex-direction:column; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:-.03em; }
+    .pip { width:34px; height:34px; display:grid; place-items:center; border:1px solid #597060; border-radius:50%; color:var(--green); }
+    .pip svg { width:18px; }
+    .eyebrow { color:var(--green); text-transform:uppercase; letter-spacing:.18em; font-size:.72rem; font-weight:800; }
+    h1 { margin:8px 0 10px; font-size:clamp(2.25rem,6vw,5.4rem); line-height:.95; letter-spacing:-.065em; max-width:760px; }
+    .lede { color:var(--muted); max-width:610px; line-height:1.65; }
+    .setup { flex:1; display:grid; align-content:center; padding:55px 0; }
+    .setup-grid { display:grid; grid-template-columns:1fr minmax(290px,420px); gap:clamp(35px,8vw,100px); align-items:center; }
+    .card { background:rgba(21,34,28,.92); border:1px solid var(--line); border-radius:22px; padding:24px; box-shadow:0 22px 70px #0005; }
+    .field { margin-bottom:18px; }
+    .optional { display:flex; align-items:center; gap:10px; color:var(--ink); font-size:.9rem; text-transform:none; letter-spacing:0; cursor:pointer; }
+    .optional input { width:18px; height:18px; accent-color:var(--green); }
+    .game-time-field { display:none; margin-top:12px; }
+    .game-time-field.visible { display:block; }
+    .field-help { margin:8px 2px 0; color:var(--muted); font-size:.78rem; line-height:1.5; }
+    .field-help strong { color:var(--danger); }
+    .join-row { display:grid; grid-template-columns:1fr auto; gap:8px; margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--line); }
+    .join-row button { border:1px solid #42584b; border-radius:11px; background:#203128; padding:0 16px; font-weight:700; }
+    .online-note { min-height:18px; margin:-8px 0 12px; color:var(--danger); font-size:.76rem; }
+    .room-badge { display:none; align-items:center; gap:8px; border:1px solid #405448; background:#14221b; border-radius:999px; padding:6px 10px; color:var(--green); font-size:.75rem; font-weight:700; }
+    .room-badge.visible { display:inline-flex; }
+    .room-badge button { border:0; background:transparent; color:var(--ink); padding:0; font-size:.72rem; }
+    label { display:block; color:var(--muted); font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:8px; }
+    input,select { width:100%; color:var(--ink); background:#0e1814; border:1px solid #34483d; border-radius:11px; padding:12px 14px; outline:none; }
+    input:focus,select:focus { border-color:var(--green); box-shadow:0 0 0 3px #a6e3a118; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .names { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .primary { width:100%; border:0; background:var(--green); color:#102016; border-radius:12px; padding:14px 18px; font-weight:800; margin-top:8px; }
+    .primary:hover { filter:brightness(1.06); }
+    .game { display:none; flex:1; flex-direction:column; padding-top:28px; }
+    .game.active { display:flex; }
+    .setup.hidden { display:none; }
+    .topline { display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:.86rem; }
+    .status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); margin-right:7px; }
+    .status-dot.running { background:var(--green); box-shadow:0 0 0 5px #a6e3a112; }
+    .timer-wrap { flex:1; min-height:320px; display:grid; place-content:center; text-align:center; padding:24px 0; }
+    .turn-label { color:var(--green); font-weight:800; text-transform:uppercase; letter-spacing:.18em; font-size:.75rem; }
+    .active-name { font-size:clamp(1.7rem,4vw,3.2rem); font-weight:800; margin:8px 0 -3px; letter-spacing:-.04em; }
+    .clock { font-family:"DM Mono",monospace; font-size:clamp(5rem,20vw,13rem); line-height:1; letter-spacing:-.09em; font-variant-numeric:tabular-nums; transition:color .2s; }
+    .clock.low { color:var(--gold); }
+    .clock.over { color:var(--danger); animation:pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity:.62; } }
+    .hint { color:var(--muted); font-size:.82rem; margin-top:14px; }
+    .players { display:grid; grid-template-columns:repeat(var(--count),1fr); gap:9px; margin-bottom:16px; }
+    .player { min-width:0; padding:12px 8px; border:1px solid var(--line); background:#121f19; border-radius:12px; text-align:left; }
+    .player span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+    .player small { color:var(--muted); }
+    .player.current { background:#20372b; border-color:#66836e; box-shadow:inset 0 0 0 1px #66836e; }
+    .player.out { opacity:.42; text-decoration:line-through; cursor:not-allowed; }
+    .player.out small { color:var(--danger); text-decoration:none; }
+    .controls { display:grid; grid-template-columns:1fr 1.4fr 1fr 1fr; gap:10px; }
+    .control { border:1px solid #34483d; background:#15231d; border-radius:13px; padding:14px 10px; font-weight:700; }
+    .control.next { background:var(--green); color:#102016; border-color:var(--green); }
+    .minor { border:0; background:transparent; color:var(--muted); padding:8px; }
+    .minor:hover { color:var(--ink); }
+    footer { margin-top:18px; text-align:center; color:#66746b; font-size:.72rem; }
+    @media(max-width:720px) { .setup-grid{grid-template-columns:1fr}.intro{text-align:center}.lede{margin-inline:auto}.setup{padding:42px 0}.shell{padding-top:18px}.players{overflow-x:auto;grid-template-columns:repeat(var(--count),minmax(112px,1fr))}.clock{font-size:clamp(4.7rem,25vw,8rem)} }
+    @media(max-width:600px) { .controls{grid-template-columns:1fr 1fr}.control.next{grid-row:1;grid-column:2}.timer-wrap{min-height:280px} }
+    @media(max-width:420px) { .names{grid-template-columns:1fr}.card{padding:18px} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><span class="pip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> Nerd Cave Comander Clock</div>
+      <button class="minor" id="newGame" hidden>New game</button>
+    </header>
+
+    <section class="setup" id="setup">
+      <div class="setup-grid">
+        <div class="intro">
+          <div class="eyebrow">Keep the table moving</div>
+          <h1>More magic.<br>Less waiting.</h1>
+          <p class="lede">A simple turn clock built for Commander night. Pick a turn length, add your pod, and pass priority when your turn is done.</p>
+        </div>
+        <form class="card" id="setupForm">
+          <label for="roomCode">Join an existing shared game</label>
+          <div class="join-row"><input id="roomCode" maxlength="6" placeholder="6-digit room code" autocomplete="off"><button type="button" id="joinGame">Join</button></div>
+          <div class="online-note" id="onlineNote"></div>
+          <div class="row">
+            <div class="field"><label for="minutes">Minutes per turn</label><input id="minutes" type="number" min="1" max="60" value="5" required></div>
+            <div class="field"><label for="playerCount">Players</label><select id="playerCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></div>
+          </div>
+          <div class="field"><label>Player names</label><div class="names" id="nameFields"></div></div>
+          <div class="field">
+            <label class="optional"><input id="useGameClock" type="checkbox"> Use a player elimination clock</label>
+            <div class="game-time-field" id="gameTimeField">
+              <label for="gameMinutes">Total game minutes per player</label>
+              <input id="gameMinutes" type="number" min="1" max="240" value="60">
+              <p class="field-help"><strong>Important:</strong> This time counts down across all of a player’s turns. If it reaches zero, that player is knocked out and their game is over.</p>
+            </div>
+          </div>
+          <div class="field"><label class="optional"><input id="shareGame" type="checkbox" checked> Create a shared online game</label><p class="field-help">Creates a room code so every player can view and control the same clock.</p></div>
+          <button class="primary" type="submit">Start the game →</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="game" id="game" aria-live="polite">
+      <div class="topline"><span><i class="status-dot" id="statusDot"></i><span id="statusText">Ready</span></span><span class="room-badge" id="roomBadge">Room <b id="activeRoom"></b><button id="copyRoom">Copy link</button></span><span id="turnCount">Turn 1</span></div>
+      <div class="timer-wrap">
+        <div class="turn-label">Current turn</div>
+        <div class="active-name" id="activeName">Player 1</div>
+        <div class="clock" id="clock">05:00</div>
+        <div class="hint">Press <strong>space</strong> to pause · <strong>N</strong> for next player</div>
+      </div>
+      <div class="players" id="players"></div>
+      <div class="controls">
+        <button class="control" id="adjust">+ 1 minute</button>
+        <button class="control" id="pause">Start timer</button>
+        <button class="control next" id="next">Next player →</button>
+        <button class="control" id="floatTimer">Float timer ↗</button>
+      </div>
+    </section>
+    <footer>Made by Thomas Lyle · Built for multiplayer Commander</footer>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
+    import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
+    import { getDatabase, ref, set, onValue, off } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js';
+
+    const firebaseConfig = {
+      apiKey: 'AIzaSyAWUgmhoZUtuxlIG4Z1SXYfgHwAQA2Vnc8',
+      authDomain: 'mtg-timer-3f28c.firebaseapp.com',
+      databaseURL: 'https://mtg-timer-3f28c-default-rtdb.firebaseio.com',
+      projectId: 'mtg-timer-3f28c',
+      storageBucket: 'mtg-timer-3f28c.firebasestorage.app',
+      messagingSenderId: '335084431039',
+      appId: '1:335084431039:web:fcce0fb773d9110871880a'
+    };
+    const firebaseApp = initializeApp(firebaseConfig);
+    const auth = getAuth(firebaseApp);
+    const database = getDatabase(firebaseApp);
+    const $ = (id) => document.getElementById(id);
+    const state = { players: [], active: 0, duration: 300, remaining: 300, running: false, turn: 1, lastTick: 0, raf: 0, useGameClock: false, gameDuration: 3600, gameRemaining: [], eliminated: [] };
+    let floatWindow = null;
+    let activeRoom = '';
+    let activeRoomRef = null;
+    let serverOffset = 0;
+    onValue(ref(database, '.info/serverTimeOffset'), snap => { serverOffset = snap.val() || 0; });
+
+    function roomId() { return Math.random().toString(36).slice(2,8).toUpperCase(); }
+    function cleanRoom(value) { return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,6); }
+    async function ensureFirebase() {
+      if (!auth.currentUser) await signInAnonymously(auth);
+    }
+    function onlineError(message='') { $('onlineNote').textContent = message; }
+    function gameSnapshot() {
+      return {
+        players: state.players, active: state.active, duration: state.duration,
+        remaining: Math.max(-86400, state.remaining), running: state.running,
+        turn: state.turn, useGameClock: state.useGameClock,
+        gameDuration: state.gameDuration, gameRemaining: state.gameRemaining,
+        eliminated: state.eliminated, syncedAt: Date.now() + serverOffset
+      };
+    }
+    async function syncGame() {
+      if (!activeRoomRef) return;
+      try { await set(activeRoomRef, gameSnapshot()); }
+      catch (error) { onlineError(`Sync error: ${error.message}`); }
+    }
+    function buildPlayers() {
+      $('players').style.setProperty('--count', state.players.length);
+      $('players').innerHTML = state.players.map((name,i) => `<button class="player${i===state.active?' current':''}" data-index="${i}"><span>${name.replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</span><small>Tap to start turn</small></button>`).join('');
+    }
+    function showGame() {
+      buildPlayers();
+      $('setup').classList.add('hidden'); $('game').classList.add('active'); $('newGame').hidden = false;
+      $('roomBadge').classList.toggle('visible', Boolean(activeRoom));
+      $('activeRoom').textContent = activeRoom;
+      render();
+    }
+    function applyRemote(data) {
+      cancelAnimationFrame(state.raf);
+      Object.assign(state, data);
+      state.gameRemaining = Array.isArray(data.gameRemaining) ? data.gameRemaining : Object.values(data.gameRemaining || {});
+      state.eliminated = Array.isArray(data.eliminated) ? data.eliminated : Object.values(data.eliminated || {});
+      if (state.running && data.syncedAt) {
+        const elapsed = Math.max(0, (Date.now() + serverOffset - data.syncedAt) / 1000);
+        state.remaining -= elapsed;
+        if (state.useGameClock) state.gameRemaining[state.active] -= elapsed;
+      }
+      state.lastTick = performance.now();
+      showGame();
+      if (state.running) state.raf = requestAnimationFrame(tick);
+    }
+    function watchRoom(code) {
+      if (activeRoomRef) off(activeRoomRef);
+      activeRoom = code;
+      activeRoomRef = ref(database, `rooms/${code}`);
+      onValue(activeRoomRef, snap => { if (snap.exists()) applyRemote(snap.val()); });
+    }
+    async function joinRoom(code) {
+      code = cleanRoom(code);
+      if (code.length !== 6) { onlineError('Enter a valid 6-character room code.'); return; }
+      onlineError('Connecting…');
+      try {
+        await ensureFirebase();
+        const target = ref(database, `rooms/${code}`);
+        onValue(target, snap => {
+          off(target);
+          if (!snap.exists()) { onlineError('Room not found. Check the code and try again.'); return; }
+          onlineError(''); watchRoom(code); applyRemote(snap.val());
+          history.replaceState(null, '', `${location.pathname}?room=${code}`);
+        }, error => onlineError(`Unable to join: ${error.message}`), { onlyOnce:true });
+      } catch (error) { onlineError(`Unable to connect. Enable Anonymous Authentication in Firebase. (${error.message})`); }
+    }
+
+    function renderNameFields() {
+      const count = Number($('playerCount').value);
+      const old = [...$('nameFields').querySelectorAll('input')].map(i => i.value);
+      $('nameFields').innerHTML = Array.from({length:count}, (_,i) => `<input aria-label="Player ${i+1} name" maxlength="20" value="${old[i] || `Player ${i+1}`}">`).join('');
+    }
+    function formatTime(seconds) {
+      const sign = seconds < 0 ? '−' : '';
+      const total = Math.abs(Math.ceil(seconds));
+      return `${sign}${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
+    }
+    function render() {
+      $('clock').textContent = formatTime(state.remaining);
+      $('clock').className = 'clock' + (state.remaining <= 0 ? ' over' : state.remaining <= 60 ? ' low' : '');
+      $('activeName').textContent = state.players[state.active];
+      $('turnCount').textContent = `Turn ${state.turn}`;
+      $('statusText').textContent = state.running ? 'Timer running' : 'Timer paused';
+      $('statusDot').className = 'status-dot' + (state.running ? ' running' : '');
+      $('pause').textContent = state.running ? 'Pause timer' : (state.remaining === state.duration ? 'Start timer' : 'Resume timer');
+      [...$('players').children].forEach((el,i) => {
+        el.classList.toggle('current', i === state.active);
+        el.classList.toggle('out', state.eliminated[i]);
+        el.disabled = state.eliminated[i];
+        const detail = el.querySelector('small');
+        detail.textContent = state.eliminated[i] ? 'Game over — knocked out' : state.useGameClock ? `${formatTime(state.gameRemaining[i])} until knockout` : 'Tap to start turn';
+      });
+      renderFloat();
+    }
+    function renderFloat() {
+      if (!floatWindow || floatWindow.closed || !floatWindow.document.getElementById('floatClock')) return;
+      const doc = floatWindow.document;
+      doc.getElementById('floatName').textContent = state.players[state.active] || 'Player';
+      doc.getElementById('floatClock').textContent = formatTime(state.remaining);
+      doc.getElementById('floatClock').className = 'clock' + (state.remaining <= 0 ? ' over' : state.remaining <= 60 ? ' low' : '');
+      doc.getElementById('floatStatus').textContent = state.running ? 'Pause' : 'Start';
+      doc.getElementById('floatGame').textContent = state.useGameClock ? `${formatTime(state.gameRemaining[state.active])} until knockout` : `Turn ${state.turn}`;
+    }
+    async function openFloatingTimer() {
+      if (floatWindow && !floatWindow.closed) { floatWindow.focus(); return; }
+      try {
+        floatWindow = 'documentPictureInPicture' in window
+          ? await documentPictureInPicture.requestWindow({ width: 430, height: 300 })
+          : window.open('', 'commanderClock', 'popup=yes,width=430,height=300');
+        if (!floatWindow) throw new Error('The floating window was blocked.');
+        const doc = floatWindow.document;
+        doc.title = 'Nerd Cave Comander Clock';
+        doc.head.innerHTML = `<meta name="viewport" content="width=device-width,initial-scale=1"><style>
+          *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0d1713;color:#f3efe4;font-family:system-ui,sans-serif;text-align:center;padding:18px}.label{color:#a6e3a1;text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:800}.name{font-size:25px;font-weight:800;margin:5px 0}.clock{font:500 clamp(62px,25vw,104px)/1 monospace;letter-spacing:-.08em}.clock.low{color:#e8bf6a}.clock.over{color:#ff756b}.game{color:#9aa89f;font-size:13px;margin:7px 0 14px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;width:100%}button{border:1px solid #42584b;border-radius:10px;background:#18271f;color:#f3efe4;padding:11px;font-weight:700;cursor:pointer}button:last-child{background:#a6e3a1;color:#102016;border-color:#a6e3a1}
+        </style>`;
+        doc.body.innerHTML = `<main><div class="label">Current turn</div><div class="name" id="floatName"></div><div class="clock" id="floatClock"></div><div class="game" id="floatGame"></div><div class="actions"><button id="floatStatus"></button><button id="floatNext">Next player →</button></div></main>`;
+        doc.getElementById('floatStatus').addEventListener('click', toggleTimer);
+        doc.getElementById('floatNext').addEventListener('click', () => { beep(); nextPlayer(); });
+        floatWindow.addEventListener('pagehide', () => { floatWindow = null; });
+        renderFloat();
+      } catch (error) { alert(error.message || 'Unable to open the floating timer.'); }
+    }
+    function nextActiveIndex() {
+      for (let step=1; step<=state.players.length; step++) {
+        const index = (state.active + step) % state.players.length;
+        if (!state.eliminated[index]) return index;
+      }
+      return -1;
+    }
+    function eliminateActivePlayer() {
+      if (state.eliminated[state.active]) return;
+      state.eliminated[state.active] = true;
+      state.gameRemaining[state.active] = 0;
+      beep();
+      const next = nextActiveIndex();
+      if (next < 0) { state.running = false; cancelAnimationFrame(state.raf); render(); syncGame(); return; }
+      selectPlayer(next);
+      if (state.running) state.raf = requestAnimationFrame(tick);
+    }
+    function tick(now) {
+      if (!state.running) return;
+      const elapsed = (now - state.lastTick) / 1000;
+      state.remaining -= elapsed;
+      if (state.useGameClock) state.gameRemaining[state.active] -= elapsed;
+      state.lastTick = now;
+      if (state.useGameClock && state.gameRemaining[state.active] <= 0) { eliminateActivePlayer(); return; }
+      render();
+      state.raf = requestAnimationFrame(tick);
+    }
+    function toggleTimer() {
+      state.running = !state.running;
+      if (state.running) { state.lastTick = performance.now(); state.raf = requestAnimationFrame(tick); }
+      else cancelAnimationFrame(state.raf);
+      render();
+      syncGame();
+    }
+    function selectPlayer(index, countTurn = true) {
+      if (state.eliminated[index]) return;
+      state.active = index;
+      state.remaining = state.duration;
+      if (countTurn) state.turn++;
+      if (!state.running) toggleTimer(); else { state.lastTick = performance.now(); render(); }
+      if (state.running) syncGame();
+    }
+    function nextPlayer() { const next = nextActiveIndex(); if (next >= 0) selectPlayer(next); }
+    function beep() {
+      try { const ctx = new AudioContext(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.frequency.value=660; gain.gain.setValueAtTime(.08,ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.15); osc.connect(gain).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+.15); } catch(e) {}
+    }
+
+    $('playerCount').addEventListener('change', renderNameFields);
+    $('useGameClock').addEventListener('change', () => $('gameTimeField').classList.toggle('visible', $('useGameClock').checked));
+    $('roomCode').addEventListener('input', e => { e.target.value = cleanRoom(e.target.value); });
+    $('joinGame').addEventListener('click', () => joinRoom($('roomCode').value));
+    $('setupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      state.duration = Number($('minutes').value) * 60;
+      state.remaining = state.duration;
+      state.players = [...$('nameFields').querySelectorAll('input')].map((i,n) => i.value.trim() || `Player ${n+1}`);
+      state.useGameClock = $('useGameClock').checked;
+      state.gameDuration = Number($('gameMinutes').value) * 60;
+      state.gameRemaining = state.players.map(() => state.gameDuration);
+      state.eliminated = state.players.map(() => false);
+      state.active = 0; state.turn = 1; state.running = false;
+      if ($('shareGame').checked) {
+        onlineError('Creating shared game…');
+        try {
+          await ensureFirebase();
+          const code = roomId();
+          activeRoom = code; activeRoomRef = ref(database, `rooms/${code}`);
+          await set(activeRoomRef, gameSnapshot());
+          watchRoom(code);
+          history.replaceState(null, '', `${location.pathname}?room=${code}`);
+          onlineError('');
+        } catch (error) { onlineError(`Unable to create shared game. Enable Anonymous Authentication in Firebase. (${error.message})`); return; }
+      } else { activeRoom=''; activeRoomRef=null; history.replaceState(null, '', location.pathname); }
+      showGame();
+    });
+    $('players').addEventListener('click', e => { const btn=e.target.closest('.player'); if(btn) selectPlayer(Number(btn.dataset.index)); });
+    $('pause').addEventListener('click', toggleTimer);
+    $('next').addEventListener('click', () => { beep(); nextPlayer(); });
+    $('adjust').addEventListener('click', () => { state.remaining += 60; render(); syncGame(); });
+    $('floatTimer').addEventListener('click', openFloatingTimer);
+    $('copyRoom').addEventListener('click', async () => {
+      const link = `${location.origin}${location.pathname}?room=${activeRoom}`;
+      try { await navigator.clipboard.writeText(link); $('copyRoom').textContent='Copied!'; setTimeout(()=>$('copyRoom').textContent='Copy link',1500); }
+      catch { prompt('Copy this game link:', link); }
+    });
+    $('newGame').addEventListener('click', () => { state.running=false; cancelAnimationFrame(state.raf); if(activeRoomRef) off(activeRoomRef); activeRoomRef=null; activeRoom=''; history.replaceState(null,'',location.pathname); if (floatWindow && !floatWindow.closed) floatWindow.close(); floatWindow=null; $('game').classList.remove('active'); $('setup').classList.remove('hidden'); $('newGame').hidden=true; $('roomBadge').classList.remove('visible'); });
+    document.addEventListener('keydown', e => {
+      if (!$('game').classList.contains('active') || /INPUT|SELECT/.test(e.target.tagName)) return;
+      if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
+      if (e.key.toLowerCase() === 'n') { beep(); nextPlayer(); }
+    });
+    renderNameFields();
+    const requestedRoom = cleanRoom(new URLSearchParams(location.search).get('room') || '');
+    if (requestedRoom) { $('roomCode').value=requestedRoom; joinRoom(requestedRoom); }
+  </script>
+</body>
+</html>
