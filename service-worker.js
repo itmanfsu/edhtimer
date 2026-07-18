@@ -3,8 +3,8 @@ const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/app-icons/icon-192.png',
+  '/app-icons/icon-512.png'
 ];
 
 // Cache the small same-origin app shell. Firebase and Google Fonts remain

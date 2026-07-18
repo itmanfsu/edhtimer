@@ -1,0 +1,5 @@
+AddType application/manifest+json .webmanifest
+
+<Files "service-worker.js">
+    Header set Cache-Control "no-cache"
+</Files>

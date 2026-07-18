@@ -28,7 +28,7 @@ Live site: [https://edhtimer.com](https://edhtimer.com)
 |-- bookmarklet.html               Bookmarklet installation page
 |-- manifest.webmanifest           PWA name, colors, and phone icons
 |-- service-worker.js              Installable same-origin app shell
-|-- icons/                          PWA and Apple touch icons
+|-- app-icons/                      PWA and Apple touch icons
 `-- README.md
 ```
 
