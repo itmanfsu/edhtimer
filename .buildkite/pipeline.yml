@@ -1,0 +1,4 @@
+steps:
+  - label: "Deploy EDH Timer"
+    branches: "main"
+    command: ssh -i /var/lib/buildkite-agent/.ssh/bytebybytebackup-key.pem ec2-user@54.209.92.42 "/home/ec2-user/deploy-edhtimer.sh"
