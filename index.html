@@ -82,13 +82,14 @@
     @media(max-width:720px) { .setup-grid{grid-template-columns:1fr}.intro{text-align:center}.lede{margin-inline:auto}.setup{padding:42px 0}.shell{padding-top:18px}.players{overflow-x:auto;grid-template-columns:repeat(var(--count),minmax(112px,1fr))}.clock{font-size:clamp(4.7rem,25vw,8rem)} }
     @media(max-width:600px) { .controls{grid-template-columns:1fr 1fr}.control.next{grid-row:1;grid-column:2}.timer-wrap{min-height:280px} }
     @media(max-width:420px) { .names{grid-template-columns:1fr}.card{padding:18px} }
+    @media(display-mode:standalone) { #installApp { display:none; } }
   </style>
 </head>
 <body>
   <main class="shell">
     <header>
       <div class="brand"><span class="pip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> Nerd Cave Comander Clock</div>
-      <div class="header-actions"><button class="minor" id="installApp" hidden>Install app</button><button class="minor" id="newGame" hidden>New game</button></div>
+      <div class="header-actions"><button class="minor" id="installApp">Install app</button><button class="minor" id="newGame" hidden>New game</button></div>
     </header>
 
     <section class="setup" id="setup">
@@ -404,8 +405,14 @@
     });
     // Chromium exposes its native install prompt through beforeinstallprompt.
     // iPhone and iPad users install through Safari's Share > Add to Home Screen.
-    window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt=event; $('installApp').hidden=false; });
-    $('installApp').addEventListener('click', async () => { if(!installPrompt)return; installPrompt.prompt(); await installPrompt.userChoice; installPrompt=null; $('installApp').hidden=true; });
+    window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt=event; });
+    $('installApp').addEventListener('click', async () => {
+      if(installPrompt){ installPrompt.prompt(); await installPrompt.userChoice; installPrompt=null; return; }
+      const ios=/iPad|iPhone|iPod/.test(navigator.userAgent);
+      alert(ios
+        ? 'To install: open this site in Safari, tap the Share button, then choose “Add to Home Screen.”'
+        : 'To install: open your browser menu (⋮), then choose “Install app” or “Add to Home screen.”');
+    });
     window.addEventListener('appinstalled', () => { installPrompt=null; $('installApp').hidden=true; });
     $('newGame').addEventListener('click', () => { state.running=false; cancelAnimationFrame(state.raf); if(activeRoomRef) off(activeRoomRef); activeRoomRef=null; activeRoom=''; history.replaceState(null,'',location.pathname); if (floatWindow && !floatWindow.closed) floatWindow.close(); floatWindow=null; $('game').classList.remove('active'); $('setup').classList.remove('hidden'); $('newGame').hidden=true; $('roomBadge').classList.remove('visible'); });
     document.addEventListener('keydown', e => {
