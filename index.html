@@ -65,8 +65,9 @@
     .player.current { background:#20372b; border-color:#66836e; box-shadow:inset 0 0 0 1px #66836e; }
     .player.out { opacity:.42; text-decoration:line-through; cursor:not-allowed; }
     .player.out small { color:var(--danger); text-decoration:none; }
-    .controls { display:grid; grid-template-columns:1fr 1.4fr 1fr 1fr; gap:10px; }
+    .controls { display:grid; grid-template-columns:1fr 1.4fr 1fr 1fr 1fr; gap:10px; }
     .control { border:1px solid #34483d; background:#15231d; border-radius:13px; padding:14px 10px; font-weight:700; }
+    a.control { display:grid; place-items:center; text-align:center; text-decoration:none; }
     .control.next { background:var(--green); color:#102016; border-color:var(--green); }
     .minor { border:0; background:transparent; color:var(--muted); padding:8px; }
     .minor:hover { color:var(--ink); }
@@ -127,6 +128,7 @@
         <button class="control" id="pause">Start timer</button>
         <button class="control next" id="next">Next player →</button>
         <button class="control" id="floatTimer">Float timer ↗</button>
+        <a class="control" href="/bookmarklet.html" target="_blank" rel="noopener">Browser overlay ↗</a>
       </div>
     </section>
     <footer>Made by Thomas Lyle · Built for multiplayer Commander</footer>

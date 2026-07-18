@@ -92,6 +92,8 @@ Apache serves both `edhtimer.com` and `www.edhtimer.com`, redirects HTTP to HTTP
 
 Visit `https://edhtimer.com/bookmarklet.html` and drag the installation button to Chrome's bookmarks bar. The bookmark injects a draggable iframe pointing to `overlay.html` into the active webpage. It can adjust opacity, close without affecting the host page, and uses the same Firebase room state as the main timer.
 
+The main timer's **Browser overlay** control opens this installation page in a new tab.
+
 The feature is isolated to `overlay.html` and `bookmarklet.html`. The `pre-bookmarklet` Git tag marks the production revision immediately before these files were added.
 
 ## Future security improvements
