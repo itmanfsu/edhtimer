@@ -134,7 +134,7 @@
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
-    import { initializeAppCheck, ReCaptchaEnterpriseProvider, getToken as getAppCheckToken } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app-check.js';
+    import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app-check.js';
     import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
     import { getDatabase, ref, set, onValue, off } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js';
 
@@ -173,12 +173,6 @@
       if (!auth.currentUser) await signInAnonymously(auth);
     }
     function onlineError(message='') { $('onlineNote').textContent = message; }
-    // Request a token at startup so configuration failures are visible immediately
-    // instead of appearing only as "unverified" requests in the Firebase dashboard.
-    getAppCheckToken(appCheck).catch(error => {
-      console.error('Firebase App Check failed:', error);
-      onlineError(`App Check error: ${error.code || error.message}`);
-    });
     // Capture the authoritative state at the moment of an action. We avoid writing on
     // every animation frame; other clients derive elapsed time from `syncedAt` instead.
     function gameSnapshot() {
