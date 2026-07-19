@@ -1,4 +1,4 @@
-const CACHE = 'nerd-cave-clock-v1';
+const CACHE = 'nerd-cave-clock-v1.0.0';
 const APP_SHELL = [
   '/',
   '/index.html',

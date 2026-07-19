@@ -80,6 +80,7 @@
     .minor { border:0; background:transparent; color:var(--muted); padding:8px; }
     .minor:hover { color:var(--ink); }
     footer { margin-top:18px; text-align:center; color:#66746b; font-size:.72rem; }
+    footer a, footer a:visited { color:inherit; }
     @media(max-width:720px) { .setup-grid{grid-template-columns:1fr}.intro{text-align:center}.lede{margin-inline:auto}.setup{padding:42px 0}.shell{padding-top:18px}.players{overflow-x:auto;grid-template-columns:repeat(var(--count),minmax(112px,1fr))}.clock{font-size:clamp(4.7rem,25vw,8rem)} }
     @media(max-width:600px) { .controls{grid-template-columns:1fr 1fr}.control.next{grid-row:1;grid-column:2}.timer-wrap{min-height:280px} }
     @media(max-width:420px) { .names{grid-template-columns:1fr}.card{padding:18px} }
@@ -141,7 +142,7 @@
         <button class="control danger" id="endGame" hidden>End shared game</button>
       </div>
     </section>
-    <footer>Designed by Thomas Lyle - itmanfsu@gmail.com · Built for multiplayer Commander</footer>
+    <footer>Designed by Thomas Lyle - itmanfsu@gmail.com · Built for multiplayer Commander · <a href="https://github.com/itmanfsu/edhtimer/tree/v1.0.0">v1.0.0</a></footer>
   </main>
 
   <script type="module">

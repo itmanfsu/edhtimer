@@ -4,6 +4,8 @@ An interactive turn timer for multiplayer Magic: The Gathering Commander games. 
 
 Live site: [https://edhtimer.com](https://edhtimer.com)
 
+Current stable version: **1.0.0** · [Firebase architecture](docs/FIREBASE_ARCHITECTURE.md) · [Changelog](CHANGELOG.md)
+
 ## Features
 
 - Configurable two-to-six-player games
@@ -30,6 +32,9 @@ Live site: [https://edhtimer.com](https://edhtimer.com)
 |-- manifest.webmanifest           PWA name, colors, and phone icons
 |-- service-worker.js              Installable same-origin app shell
 |-- app-icons/                      PWA and Apple touch icons
+|-- docs/FIREBASE_ARCHITECTURE.md  Connectivity, authentication, and data model
+|-- CHANGELOG.md                   Version history and release notes
+|-- VERSION                        Machine-readable current version
 `-- README.md
 ```
 
