@@ -14,6 +14,7 @@ Live site: [https://edhtimer.com](https://edhtimer.com)
 - Chrome Document Picture-in-Picture timer with a popup fallback
 - Optional translucent bookmarklet overlay for other webpages
 - Installable Progressive Web App for Android and iPhone home screens
+- Twelve-hour inactive-room expiration and manual shared-game deletion
 - Responsive layout and keyboard shortcuts
 
 ## Project structure
@@ -105,6 +106,12 @@ The feature is isolated to `overlay.html` and `bookmarklet.html`. The `pre-bookm
 The website is an installable Progressive Web App. Android users can use Chrome's **Install app** prompt. iPhone and iPad users can open the site in Safari and choose **Share > Add to Home Screen**. The installed app opens in standalone mode and continues using the same Firebase rooms and Buildkite-deployed website code.
 
 The service worker caches only the same-origin application shell. Firebase authentication, App Check, and real-time modules remain network-managed to avoid pinning backend code to an old release.
+
+## Room lifecycle
+
+Every shared-room action refreshes `lastActive` and `expiresAt`. Rooms expire after 12 hours without a pause, player change, or time adjustment. Joining an expired room deletes it immediately. **End shared game** lets any participant delete the current shared room after confirmation; all connected clients are then returned to the setup screen.
+
+`scripts/cleanup-expired-rooms.php` is designed for a nightly EC2 cron job. It requires a Firebase Admin service-account credential through `GOOGLE_APPLICATION_CREDENTIALS`; the credential must remain outside both the repository and `/var/www/edhtiimer.com`.
 
 ## Future security improvements
 

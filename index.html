@@ -76,6 +76,7 @@
     .control { border:1px solid #34483d; background:#15231d; border-radius:13px; padding:14px 10px; font-weight:700; }
     a.control, a.control:visited { display:grid; place-items:center; color:var(--ink); text-align:center; text-decoration:none; }
     .control.next { background:var(--green); color:#102016; border-color:var(--green); }
+    .control.danger { color:var(--danger); border-color:#70433f; }
     .minor { border:0; background:transparent; color:var(--muted); padding:8px; }
     .minor:hover { color:var(--ink); }
     footer { margin-top:18px; text-align:center; color:#66746b; font-size:.72rem; }
@@ -137,6 +138,7 @@
         <button class="control next" id="next">Next player →</button>
         <button class="control" id="floatTimer">Float timer ↗</button>
         <a class="control" href="/bookmarklet.html" target="_blank" rel="noopener">Browser overlay ↗</a>
+        <button class="control danger" id="endGame" hidden>End shared game</button>
       </div>
     </section>
     <footer>Designed by Thomas Lyle - itmanfsu@gmail.com · Built for multiplayer Commander</footer>
@@ -146,7 +148,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
     import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app-check.js';
     import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
-    import { getDatabase, ref, set, onValue, off } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js';
+    import { getDatabase, ref, set, remove, onValue, off } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js';
 
     // Public Firebase web configuration. Access is protected by Auth and database rules,
     // not by hiding these browser-visible identifiers.
@@ -175,6 +177,7 @@
     let activeRoom = '';
     let activeRoomRef = null;
     let serverOffset = 0;
+    const ROOM_LIFETIME = 12 * 60 * 60 * 1000;
     // Use Firebase's clock offset so devices with inaccurate local clocks still agree.
     onValue(ref(database, '.info/serverTimeOffset'), snap => { serverOffset = snap.val() || 0; });
 
@@ -187,12 +190,14 @@
     // Capture the authoritative state at the moment of an action. We avoid writing on
     // every animation frame; other clients derive elapsed time from `syncedAt` instead.
     function gameSnapshot() {
+      const now = Date.now() + serverOffset;
       return {
         players: state.players, active: state.active, duration: state.duration,
         remaining: Math.max(-86400, state.remaining), running: state.running,
         turn: state.turn, useGameClock: state.useGameClock,
         gameDuration: state.gameDuration, gameRemaining: state.gameRemaining,
-        eliminated: state.eliminated, syncedAt: Date.now() + serverOffset
+        eliminated: state.eliminated, syncedAt: now,
+        lastActive: now, expiresAt: now + ROOM_LIFETIME
       };
     }
     async function syncGame() {
@@ -208,6 +213,7 @@
       buildPlayers();
       $('setup').classList.add('hidden'); $('game').classList.add('active'); $('newGame').hidden = false;
       $('roomBadge').classList.toggle('visible', Boolean(activeRoom));
+      $('endGame').hidden = !activeRoom;
       $('activeRoom').textContent = activeRoom;
       render();
     }
@@ -233,7 +239,10 @@
       if (activeRoomRef) off(activeRoomRef);
       activeRoom = code;
       activeRoomRef = ref(database, `rooms/${code}`);
-      onValue(activeRoomRef, snap => { if (snap.exists()) applyRemote(snap.val()); });
+      onValue(activeRoomRef, snap => {
+        if (snap.exists()) applyRemote(snap.val());
+        else if ($('game').classList.contains('active')) { alert('This shared game was ended or expired.'); location.href=location.pathname; }
+      });
     }
     async function joinRoom(code) {
       code = cleanRoom(code);
@@ -245,6 +254,9 @@
         onValue(target, snap => {
           off(target);
           if (!snap.exists()) { onlineError('Room not found. Check the code and try again.'); return; }
+          if (snap.val().expiresAt && snap.val().expiresAt <= Date.now() + serverOffset) {
+            remove(target); onlineError('That room expired after 12 hours without activity.'); return;
+          }
           onlineError(''); watchRoom(code); applyRemote(snap.val());
           history.replaceState(null, '', `${location.pathname}?room=${code}`);
         }, error => onlineError(`Unable to join: ${error.message}`), { onlyOnce:true });
@@ -398,6 +410,11 @@
     $('next').addEventListener('click', () => { beep(); nextPlayer(); });
     $('adjust').addEventListener('click', () => { state.remaining += 60; render(); syncGame(); });
     $('floatTimer').addEventListener('click', openFloatingTimer);
+    $('endGame').addEventListener('click', async () => {
+      if (!activeRoomRef || !confirm('End this shared game for every player? This cannot be undone.')) return;
+      try { await remove(activeRoomRef); }
+      catch (error) { alert(`Unable to end the game: ${error.message}`); }
+    });
     $('copyRoom').addEventListener('click', async () => {
       const link = `${location.origin}${location.pathname}?room=${activeRoom}`;
       try { await navigator.clipboard.writeText(link); $('copyRoom').textContent='Copied!'; setTimeout(()=>$('copyRoom').textContent='Copy link',1500); }

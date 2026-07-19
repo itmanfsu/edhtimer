@@ -3,6 +3,7 @@
     ".read": false,
     ".write": false,
     "rooms": {
+      ".indexOn": ["expiresAt"],
       "$room": {
         ".read": "auth != null",
         ".write": "auth != null"

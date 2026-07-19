@@ -34,7 +34,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js';
     import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-app-check.js';
     import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js';
-    import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js';
+    import { getDatabase, ref, set, remove, onValue } from 'https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js';
 
     const app = initializeApp({
       apiKey:'AIzaSyAWUgmhoZUtuxlIG4Z1SXYfgHwAQA2Vnc8', authDomain:'mtg-timer-3f28c.firebaseapp.com',
@@ -68,13 +68,13 @@
       if(state.running&&data.syncedAt){ const elapsed=Math.max(0,(Date.now()+offset-data.syncedAt)/1000); state.remaining-=elapsed; if(state.useGameClock) state.gameRemaining[state.active]-=elapsed; }
       lastTick=performance.now(); $('pause').disabled=false; $('next').disabled=false; render(); if(state.running) raf=requestAnimationFrame(tick);
     }
-    async function save() { state.syncedAt=Date.now()+offset; await set(roomRef,state); }
+    async function save() { const now=Date.now()+offset; state.syncedAt=now; state.lastActive=now; state.expiresAt=now+(12*60*60*1000); await set(roomRef,state); }
     function nextIndex() { for(let step=1;step<=state.players.length;step++){ const i=(state.active+step)%state.players.length; if(!state.eliminated[i]) return i; } return -1; }
     $('pause').addEventListener('click',()=>{ state.running=!state.running; cancelAnimationFrame(raf); lastTick=performance.now(); render(); if(state.running) raf=requestAnimationFrame(tick); save(); });
     $('next').addEventListener('click',()=>{ const next=nextIndex(); if(next<0)return; if(next<=state.active)state.turn++; state.active=next; state.remaining=state.duration; state.running=true; lastTick=performance.now(); render(); cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); save(); });
     onValue(ref(database,'.info/serverTimeOffset'),snap=>offset=snap.val()||0);
     if(room.length!==6){ $('name').textContent='Invalid room code'; $('name').classList.add('message'); }
-    else signInAnonymously(auth).then(()=>{ roomRef=ref(database,`rooms/${room}`); onValue(roomRef,snap=>snap.exists()?apply(snap.val()):($('name').textContent='Room not found')); }).catch(error=>{ $('name').textContent='Unable to connect'; $('detail').textContent=error.code||error.message; });
+    else signInAnonymously(auth).then(()=>{ roomRef=ref(database,`rooms/${room}`); onValue(roomRef,snap=>{ if(!snap.exists()){ $('name').textContent='Room ended or expired'; $('pause').disabled=true; $('next').disabled=true; return; } const data=snap.val(); if(data.expiresAt&&data.expiresAt<=Date.now()+offset){ remove(roomRef); return; } apply(data); }); }).catch(error=>{ $('name').textContent='Unable to connect'; $('detail').textContent=error.code||error.message; });
   </script>
 </body>
 </html>
