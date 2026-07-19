@@ -44,7 +44,7 @@
     initializeAppCheck(app, { provider:new ReCaptchaEnterpriseProvider('6LcNSVotAAAAABA9Ww6KZeW8Yq22o-XSW1_OGpcd'), isTokenAutoRefreshEnabled:true });
     const auth=getAuth(app), database=getDatabase(app), $=id=>document.getElementById(id);
     const room=(new URLSearchParams(location.search).get('room')||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
-    let state=null, roomRef=null, offset=0, lastTick=0, raf=0;
+    let state=null, roomRef=null, offset=0, lastTick=0, raf=0, expirationTimer=0;
 
     const format=seconds=>{ const sign=seconds<0?'−':''; const total=Math.abs(Math.ceil(seconds)); return `${sign}${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`; };
     function render() {
@@ -66,6 +66,7 @@
       state.gameRemaining=Array.isArray(data.gameRemaining)?data.gameRemaining:Object.values(data.gameRemaining||{});
       state.eliminated=Array.isArray(data.eliminated)?data.eliminated:Object.values(data.eliminated||{});
       if(state.running&&data.syncedAt){ const elapsed=Math.max(0,(Date.now()+offset-data.syncedAt)/1000); state.remaining-=elapsed; if(state.useGameClock) state.gameRemaining[state.active]-=elapsed; }
+      clearTimeout(expirationTimer); const expiryDelay=(data.expiresAt||0)-(Date.now()+offset); if(data.expiresAt) expirationTimer=setTimeout(()=>remove(roomRef),Math.max(0,expiryDelay));
       lastTick=performance.now(); $('pause').disabled=false; $('next').disabled=false; render(); if(state.running) raf=requestAnimationFrame(tick);
     }
     async function save() { const now=Date.now()+offset; state.syncedAt=now; state.lastActive=now; state.expiresAt=now+(12*60*60*1000); await set(roomRef,state); }

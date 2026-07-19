@@ -177,6 +177,7 @@
     let activeRoom = '';
     let activeRoomRef = null;
     let serverOffset = 0;
+    let expirationTimer = 0;
     const ROOM_LIFETIME = 12 * 60 * 60 * 1000;
     // Use Firebase's clock offset so devices with inaccurate local clocks still agree.
     onValue(ref(database, '.info/serverTimeOffset'), snap => { serverOffset = snap.val() || 0; });
@@ -205,6 +206,14 @@
       try { await set(activeRoomRef, gameSnapshot()); }
       catch (error) { onlineError(`Sync error: ${error.message}`); }
     }
+    function scheduleExpiration(expiresAt) {
+      clearTimeout(expirationTimer);
+      if (!expiresAt || !activeRoomRef) return;
+      const delay = expiresAt - (Date.now() + serverOffset);
+      if (delay <= 0) { remove(activeRoomRef); return; }
+      // setTimeout is limited to roughly 24.8 days; our 12-hour delay is safe.
+      expirationTimer = setTimeout(() => { if (activeRoomRef) remove(activeRoomRef); }, delay);
+    }
     function buildPlayers() {
       $('players').style.setProperty('--count', state.players.length);
       $('players').innerHTML = state.players.map((name,i) => `<button class="player${i===state.active?' current':''}" data-index="${i}"><span>${name.replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))}</span><small>Tap to start turn</small></button>`).join('');
@@ -230,6 +239,7 @@
         if (state.useGameClock) state.gameRemaining[state.active] -= elapsed;
       }
       state.lastTick = performance.now();
+      scheduleExpiration(data.expiresAt);
       showGame();
       if (state.running) state.raf = requestAnimationFrame(tick);
     }
@@ -431,7 +441,7 @@
         : 'To install: open your browser menu (⋮), then choose “Install app” or “Add to Home screen.”');
     });
     window.addEventListener('appinstalled', () => { installPrompt=null; $('installApp').hidden=true; });
-    $('newGame').addEventListener('click', () => { state.running=false; cancelAnimationFrame(state.raf); if(activeRoomRef) off(activeRoomRef); activeRoomRef=null; activeRoom=''; history.replaceState(null,'',location.pathname); if (floatWindow && !floatWindow.closed) floatWindow.close(); floatWindow=null; $('game').classList.remove('active'); $('setup').classList.remove('hidden'); $('newGame').hidden=true; $('roomBadge').classList.remove('visible'); });
+    $('newGame').addEventListener('click', () => { state.running=false; cancelAnimationFrame(state.raf); clearTimeout(expirationTimer); if(activeRoomRef) off(activeRoomRef); activeRoomRef=null; activeRoom=''; history.replaceState(null,'',location.pathname); if (floatWindow && !floatWindow.closed) floatWindow.close(); floatWindow=null; $('game').classList.remove('active'); $('setup').classList.remove('hidden'); $('newGame').hidden=true; $('roomBadge').classList.remove('visible'); });
     document.addEventListener('keydown', e => {
       if (!$('game').classList.contains('active') || /INPUT|SELECT/.test(e.target.tagName)) return;
       if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }

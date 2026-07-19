@@ -109,9 +109,7 @@ The service worker caches only the same-origin application shell. Firebase authe
 
 ## Room lifecycle
 
-Every shared-room action refreshes `lastActive` and `expiresAt`. Rooms expire after 12 hours without a pause, player change, or time adjustment. Joining an expired room deletes it immediately. **End shared game** lets any participant delete the current shared room after confirmation; all connected clients are then returned to the setup screen.
-
-`scripts/cleanup-expired-rooms.php` is designed for a nightly EC2 cron job. It requires a Firebase Admin service-account credential through `GOOGLE_APPLICATION_CREDENTIALS`; the credential must remain outside both the repository and `/var/www/edhtiimer.com`.
+Every shared-room action refreshes `lastActive` and `expiresAt`. Rooms expire after 12 hours without a pause, player change, or time adjustment. An open main timer or bookmarklet deletes the room when that deadline arrives; joining an already expired room also deletes it immediately. **End shared game** lets any participant delete the current shared room after confirmation; all connected clients are notified.
 
 ## Future security improvements
 
